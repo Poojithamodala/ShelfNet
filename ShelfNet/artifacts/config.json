@@ -1,0 +1,18 @@
+{
+  "features": [
+    "fruit",
+    "power_status",
+    "temperature_c",
+    "humidity_pct",
+    "ethylene_ppm",
+    "co2_ppm",
+    "o2_pct",
+    "vibration_ms2",
+    "light_lux",
+    "door_open_count"
+  ],
+  "timestamp_col": "time_step",
+  "fruit_col": "fruit",
+  "target_col": "remaining_shelf_life",
+  "lookback": 24
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ShelfNet</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <hgroup>
+        <h1>ShelfNet</h1>
+        <p>Dynamic Shelf Life Modeling for Fruits and Vegetables using LSTM and IoT Sensors</p>
+      </hgroup>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <article class="contrast">
+            {% for message in messages %}
+              <p>{{ message }}</p>
+            {% endfor %}
+          </article>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+body { padding-bottom: 2rem; }
+canvas { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; }
+article header { font-weight: 600; }
+summary { cursor: pointer; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.card { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+.status-safe { border-left: 6px solid #16a34a; }
+.status-warning { border-left: 6px solid #f59e0b; }
+.status-critical { border-left: 6px solid #dc2626; }
+.badge { padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.8rem; }
+.badge.warning { background: #fff7ed; color: #b45309; border: 1px solid #f59e0b; }
+.badge.critical { background: #fee2e2; color: #b91c1c; border: 1px solid #dc2626; }
+.row-safe { background: #f0fdf4; }
+.row-warning { background: #fffbeb; }
+.row-critical { background: #fef2f2; }

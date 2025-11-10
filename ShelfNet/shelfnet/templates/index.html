@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block content %}
+<section>
+  <form action="{{ url_for('predict') }}" method="post" enctype="multipart/form-data">
+    <div class="grid">
+      <input type="file" name="file" accept=".csv,.xlsx" required />
+      <input type="number" name="threshold" placeholder="Alert threshold (hours)" step="0.1" min="0" value="{{ threshold }}" />
+      <select name="fruit_filter">
+        <option value="">All Fruits</option>
+        {% for f in fruits or [] %}
+          <option value="{{ f }}" {% if selected_fruit==f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Upload & Predict</button>
+    </div>
+  </form>
+</section>
+
+{% if metrics and metrics.rmse is defined %}
+<article>
+  <header>Last Training Metrics</header>
+  <p>RMSE: <b>{{ '%.3f'|format(metrics.rmse) }}</b> | R²: <b>{{ '%.3f'|format(metrics.r2) }}</b></p>
+  </article>
+{% endif %}
+
+{% if predictions %}
+<section class="cards">
+  <article class="card">
+    <header>Total Items</header>
+    <h2>{{ metrics.total_items }}</h2>
+  </article>
+  <article class="card">
+    <header>Avg Predicted Shelf Life</header>
+    <h2>{{ '%.2f'|format(metrics.avg_shelf) }}</h2>
+  </article>
+  <article class="card {{ 'status-critical' if metrics.alerts>0 else 'status-safe' }}">
+    <header>Alerts</header>
+    <h2>{{ metrics.alerts }}</h2>
+  </article>
+</section>
+
+<article>
+  <header>Predicted Shelf Life over Time</header>
+  <canvas id="predChart" height="120"></canvas>
+  <script id="chart-data" type="application/json">{{ chart|tojson }}</script>
+  <script>
+    const cdata = JSON.parse(document.getElementById('chart-data').textContent);
+    const predCtx = document.getElementById('predChart');
+    new Chart(predCtx, {
+      type: 'line',
+      data: {
+        labels: cdata.labels,
+        datasets: [{
+          label: 'Predicted Shelf Life',
+          data: cdata.values,
+          borderColor: '#1b84e7',
+          pointRadius: 3,
+          pointBackgroundColor: cdata.colors,
+          fill: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'nearest', intersect: false },
+        plugins: { tooltip: { enabled: true } },
+        scales: { y: { title: { display: true, text: 'Hours' } } }
+      }
+    });
+  </script>
+</article>
+
+<article>
+  <header>Alerts per Fruit</header>
+  <canvas id="barChart" height="120"></canvas>
+  <script id="bar-data" type="application/json">{{ bar|tojson }}</script>
+  <script>
+    const bdata = JSON.parse(document.getElementById('bar-data').textContent);
+    const barCtx = document.getElementById('barChart');
+    new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: bdata.labels,
+        datasets: [{
+          label: 'Alerts',
+          data: bdata.values,
+          backgroundColor: '#dc2626'
+        }]
+      },
+      options: { responsive: true, plugins: { tooltip: { enabled: true } } }
+    });
+  </script>
+</article>
+
+{% if scatter.series and scatter.series|length > 0 %}
+<article>
+  <header>Sensor Trends</header>
+  <canvas id="scatterChart" height="140"></canvas>
+  <script id="scatter-data" type="application/json">{{ scatter|tojson }}</script>
+  <script>
+    const sdata = JSON.parse(document.getElementById('scatter-data').textContent);
+    const sctx = document.getElementById('scatterChart');
+    const palette = ['#1b84e7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0ea5e9','#22c55e'];
+    new Chart(sctx, {
+      type: 'line',
+      data: {
+        labels: sdata.labels,
+        datasets: sdata.series.map((s, i) => ({
+          label: s.name,
+          data: s.values,
+          borderColor: palette[i % palette.length],
+          tension: 0.2,
+          fill: false
+        }))
+      },
+      options: { responsive: true, plugins: { tooltip: { enabled: true } } }
+    });
+  </script>
+</article>
+{% endif %}
+
+<article>
+  <header>Alerts Table</header>
+  <table>
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Fruit</th>
+        <th>Predicted Shelf Life</th>
+        <th>Storage Location</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in predictions if r.alert %}
+      <tr class="row-{{ 'critical' if r.predicted_shelf_life < threshold else 'warning' }}">
+        <td>{{ r.timestamp }}</td>
+        <td>{{ r.fruit or r.fruit_type }}</td>
+        <td>{{ '%.2f'|format(r.predicted_shelf_life) }}</td>
+        <td>{{ r.storage_location or '-' }}</td>
+        <td>
+          {% if r.predicted_shelf_life < threshold %}
+            <span class="badge critical">Critical</span>
+          {% else %}
+            <span class="badge warning">Warning</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+
+<article>
+  <header>Full Data Preview</header>
+  <p>
+    <a href="{{ url_for('download_csv', batch_id=batch_id) }}">Download CSV</a> ·
+    <a href="{{ url_for('download_xlsx', batch_id=batch_id) }}">Download Excel</a>
+  </p>
+  <details open>
+    <summary>Preview (first 500 rows)</summary>
+    <table>
+      <thead>
+        <tr>
+          <th>timestamp</th>
+          <th>fruit</th>
+          <th>predicted_shelf_life</th>
+          <th>alert</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in predictions %}
+          <tr class="row-{{ 'critical' if r.predicted_shelf_life < threshold else ('warning' if r.predicted_shelf_life < (threshold*1.5) else 'safe') }}">
+            <td>{{ r.timestamp }}</td>
+            <td>{{ r.fruit or r.fruit_type }}</td>
+            <td>{{ '%.2f'|format(r.predicted_shelf_life) }}</td>
+            <td>{% if r.alert %}⚠️{% else %}✅{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+</article>
+{% endif %}
+{% endblock %}
