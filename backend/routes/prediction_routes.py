@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from services.prediction_service import predict_for_batch
 from database import batches_collection
 from utils.auth_dependency import get_current_user
+from services.prediction_service import predict_for_batch
 
 router = APIRouter()
 

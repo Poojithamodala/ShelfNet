@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
 import uuid
 
-from database import warehouses_collection
+from database import batches_collection, warehouses_collection
 from models.warehouse_model import WarehouseCreate
 from utils.auth_dependency import get_current_user, require_role
 
@@ -22,6 +22,7 @@ def create_warehouse(
         "warehouse_id": warehouse_id,
         **wh.dict(),
         "status": "ACTIVE",
+        "active_batches_count": 0, 
         "created_at": datetime.utcnow(),
         "created_by": user["user_id"]
     }

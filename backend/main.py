@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routes.user_routes import router as user_router
 from routes.warehouse_routes import router as warehouse_router
 from routes.batch_routes import router as batch_router
@@ -12,6 +13,17 @@ from routes.sales_dashboard_routes import router as sales_router
 from routes.auth_routes import router as auth_router
 
 app = FastAPI(title="ShelfNet Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(user_router, prefix="/users")
 app.include_router(warehouse_router, prefix="/warehouses")

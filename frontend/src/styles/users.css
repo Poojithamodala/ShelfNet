@@ -1,0 +1,91 @@
+.users-page {
+  padding: 24px;
+}
+
+.users-page h2 {
+  margin-bottom: 16px;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.users-table th,
+.users-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.users-table th {
+  background: #f4f6f8;
+  font-weight: 600;
+}
+
+.users-table tr:hover {
+  background: #f9fafb;
+}
+
+.status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status.ACTIVE {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.status.PENDING {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+.status.DISABLED {
+  background: #fdecea;
+  color: #b91c1c;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+button.approve {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.disable {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.loading {
+  padding: 24px;
+}
+
+.section-title {
+  margin: 20px 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
