@@ -40,8 +40,10 @@ export default function SetPassword() {
       await setPassword(email, password);
       alert("Password set successfully. Please login.");
       navigate("/login");
-    } catch (err: any) {
-      alert(err.response?.data?.detail || "Failed to set password");
+    } catch (err: unknown) {
+      type AxiosError = { response?: { data?: { detail?: string } } };
+      const message = (err as AxiosError)?.response?.data?.detail || "Failed to set password";
+      alert(message);
     }
   };
 

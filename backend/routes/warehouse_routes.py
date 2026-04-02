@@ -44,3 +44,23 @@ def list_warehouses():
         warehouses_collection.find({}, {"_id": 0})
     )
 
+
+@router.get(
+    "/{warehouse_id}",
+    dependencies=[Depends(require_role(["ADMIN", "MANAGER"]))]
+)
+def get_warehouse(warehouse_id: str, user=Depends(get_current_user)):
+    warehouse = warehouses_collection.find_one(
+        {"warehouse_id": warehouse_id},
+        {"_id": 0}
+    )
+    
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Manager can only view their assigned warehouse
+    if user["role"] == "MANAGER" and user.get("warehouse_id") != warehouse_id:
+        raise HTTPException(status_code=403, detail="Access denied to this warehouse")
+    
+    return warehouse
+

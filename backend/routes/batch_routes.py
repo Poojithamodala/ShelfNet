@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from datetime import datetime
+from typing import Optional
 
 from database import batches_collection, warehouses_collection
 from models.batch_model import BatchCreate
@@ -62,7 +63,7 @@ def create_batch(
 
 @router.get("")
 def list_batches(
-    warehouse_id: str | None = Query(None),
+    warehouse_id: Optional[str] = Query(None),
     user=Depends(get_current_user)
 ):
     role = user["role"]
@@ -90,7 +91,10 @@ def list_batches(
     return list(batches_collection.find(query, {"_id": 0}))
 
 
-@router.post("/{batch_id}/close")
+@router.post(
+    "/{batch_id}/close",
+    dependencies=[Depends(require_role(["SALES", "MANAGER"]))]
+)
 def close_batch(
     batch_id: str,
     user=Depends(get_current_user)
@@ -101,6 +105,9 @@ def close_batch(
 
     if not batch:
         raise HTTPException(status_code=404, detail="Active batch not found")
+
+    if user["role"] == "SALES" and batch["warehouse_id"] != user["warehouse_id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     if user["role"] == "MANAGER" and batch["warehouse_id"] != user["warehouse_id"]:
         raise HTTPException(status_code=403, detail="Access denied")

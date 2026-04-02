@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/warehouse.css";
+import "../../styles/common.css";
 import { getWarehouses } from "../../api/warehouse.api";
 import AddWarehouseModal from "./AddWarehouseModal";
 
+type Warehouse = {
+  warehouse_id: string;
+  name: string;
+  location: string;
+  capacity_kg: number;
+  active_batches_count: number;
+  status: string;
+};
+
 export default function Warehouses() {
-  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -15,7 +25,11 @@ export default function Warehouses() {
   };
 
   useEffect(() => {
-    load();
+    const loadData = async () => {
+      await load();
+    };
+
+    loadData();
   }, []);
 
   return (
@@ -25,7 +39,7 @@ export default function Warehouses() {
         <button onClick={() => setOpen(true)}>+ Add Warehouse</button>
       </div>
 
-      <table className="warehouse-table">
+      <table className="dashboard-table">
         <thead>
           <tr>
             <th>ID</th>

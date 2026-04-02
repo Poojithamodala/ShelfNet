@@ -2,10 +2,19 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../api/axios";
 import "../../styles/batches.css";
+import "../../styles/common.css";
+
+type WarehouseBatch = {
+  batch_id: string;
+  fruit: string;
+  quantity_kg: number;
+  status: string;
+  predicted_remaining_shelf_life_days?: number;
+};
 
 export default function WarehouseBatches() {
   const { warehouseId } = useParams();
-  const [batches, setBatches] = useState<any[]>([]);
+  const [batches, setBatches] = useState<WarehouseBatch[]>([]);
 
   useEffect(() => {
     api
@@ -17,7 +26,7 @@ export default function WarehouseBatches() {
     <>
       <h1>Warehouse {warehouseId} – Batches</h1>
 
-      <table className="batch-table">
+      <table className="dashboard-table">
         <thead>
           <tr>
             <th>Batch ID</th>

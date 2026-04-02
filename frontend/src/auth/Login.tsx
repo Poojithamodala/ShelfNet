@@ -18,8 +18,9 @@ export default function Login() {
       if (role === "ADMIN") navigate("/admin");
       else if (role === "MANAGER") navigate("/manager");
       else navigate("/sales");
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
+    } catch (err: unknown) {
+      type AxiosError = { response?: { data?: { detail?: string } } };
+      const detail = (err as AxiosError)?.response?.data?.detail;
 
       if (detail === "Password not set. Please complete account setup.") {
         navigate("/set-password", { state: { email } });

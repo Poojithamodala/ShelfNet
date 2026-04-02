@@ -16,7 +16,6 @@ export default function Sidebar({ role }: Props) {
           <Link to="/admin/warehouses">Warehouses - Batches</Link>
           <Link to="/admin/users">Users</Link>
           <Link to="/admin/alerts">Alerts</Link>
-          <Link to="/admin/reports">Reports</Link>
         </>
       )}
 

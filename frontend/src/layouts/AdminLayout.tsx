@@ -6,10 +6,11 @@ import { getUser } from "../utils/auth";
 
 export default function AdminLayout() {
   const user = getUser();
+  const role = (user?.role as "ADMIN" | "MANAGER" | "SALES") || "ADMIN";
 
   return (
     <div className="app-layout">
-      <Sidebar role={user.role} />
+      <Sidebar role={role} />
 
       <div className="main-content">
         <Topbar />

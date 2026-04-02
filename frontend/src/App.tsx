@@ -13,6 +13,12 @@ import Warehouses from "./pages/admin/Warehouses";
 import AdminUsers from "./pages/admin/Users";
 import AdminAlerts from "./pages/admin/AdminAlerts";
 import WarehouseBatches from "./pages/admin/WarehouseBatches";
+import ManagerDashboard from "./pages/manager/ManagerDashboard";
+import ManagerBatches from "./pages/manager/ManagerBatches";
+import ManagerAlerts from "./pages/manager/ManagerAlerts";
+import SalesDashboard from "./pages/sales/SalesDashboard";
+import SalesBatches from "./pages/sales/SalesBatches";
+import SalesReports from "./pages/sales/SalesReports";
 
 
 export default function App() {
@@ -33,23 +39,29 @@ export default function App() {
         </Route>
 
         <Route
+          path="/manager"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
               <ManagerLayout />
             </ProtectedRoute>
           }
         >
-          {/* <Route path="/manager" element={<ManagerDashboard />} /> */}
+          <Route index element={<ManagerDashboard />} />
+          <Route path="batches" element={<ManagerBatches />} />
+          <Route path="alerts" element={<ManagerAlerts />} />
         </Route>
 
         <Route
+          path="/sales"
           element={
             <ProtectedRoute allowedRoles={["SALES"]}>
               <SalesLayout />
             </ProtectedRoute>
           }
         >
-          {/* <Route path="/sales" element={<SalesDashboard />} /> */}
+          <Route index element={<SalesDashboard />} />
+          <Route path="batches" element={<SalesBatches />} />
+          <Route path="reports" element={<SalesReports />} />
         </Route>
 
       </Routes>

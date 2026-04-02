@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import "../../styles/alerts.css";
+import "../../styles/common.css";
 
 type Alert = {
   batch_id: string;
@@ -17,14 +18,18 @@ export default function AdminAlerts() {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  useEffect(() => {
-    loadAlerts();
-  }, []);
-
   const loadAlerts = async () => {
     const res = await api.get("/alerts");
     setAlerts(res.data);
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await loadAlerts();
+    };
+
+    fetchData();
+  }, []);
 
   const filteredAlerts = alerts.filter((a) => {
     if (typeFilter !== "ALL" && a.alert_type !== typeFilter) return false;
@@ -58,7 +63,7 @@ export default function AdminAlerts() {
       </div>
 
       {/* Table */}
-      <table className="alerts-table">
+      <table className="dashboard-table">
         <thead>
           <tr>
             <th>Batch</th>
@@ -101,7 +106,7 @@ export default function AdminAlerts() {
           {filteredAlerts.length === 0 && (
             <tr>
               <td colSpan={7} className="empty">
-                No alerts found
+                No current alerts
               </td>
             </tr>
           )}

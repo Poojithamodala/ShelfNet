@@ -24,8 +24,10 @@ export default function Register() {
       });
 
       alert("Registration submitted. Await admin approval.");
-    } catch (err: any) {
-      alert(err.response?.data?.detail || "Registration failed");
+    } catch (err: unknown) {
+      type AxiosError = { response?: { data?: { detail?: string } } };
+      const message = (err as AxiosError)?.response?.data?.detail || "Registration failed";
+      alert(message);
     }
   };
 

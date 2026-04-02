@@ -24,7 +24,9 @@ users_col = db["users"]
 def get_admin_kpis():
 
     total_warehouses = warehouses_col.count_documents({})
-    total_batches = batches_col.count_documents({"status": "ACTIVE"})
+    active_batches = batches_col.count_documents({"status": "ACTIVE"})
+    inactive_batches = batches_col.count_documents({"status": "INACTIVE"})
+    total_batches = batches_col.count_documents({})
     total_sensors = sensors_col.count_documents({})
     active_alerts = alerts_col.count_documents({"resolved": False})
     critical_batches = alerts_col.count_documents({
@@ -34,11 +36,14 @@ def get_admin_kpis():
 
     return {
         "total_warehouses": total_warehouses,
-        "active_batches": total_batches,
+        "active_batches": active_batches,
+        "inactive_batches": inactive_batches,
+        "total_batches": total_batches,
         "total_sensors": total_sensors,
         "active_alerts": active_alerts,
         "critical_batches": critical_batches
     }
+
 
 @router.get("/warehouses/summary")
 def warehouse_summary():
@@ -50,9 +55,15 @@ def warehouse_summary():
     for wh in warehouses:
         warehouse_id = wh["warehouse_id"]
 
-        batches = batches_col.count_documents({
+        active_batches = batches_col.count_documents({
             "warehouse_id": warehouse_id,
             "status": "ACTIVE"
+        })
+
+        # ✅ NEW: count inactive batches per warehouse
+        inactive_batches = batches_col.count_documents({
+            "warehouse_id": warehouse_id,
+            "status": "INACTIVE"
         })
 
         alerts = alerts_col.count_documents({
@@ -64,11 +75,13 @@ def warehouse_summary():
             "warehouse_id": warehouse_id,
             "name": wh["name"],
             "location": wh["location"],
-            "active_batches": batches,
+            "active_batches": active_batches,
+            "inactive_batches": inactive_batches,  # ✅ NEW
             "active_alerts": alerts
         })
 
     return result
+
 
 @router.get("/alerts/analytics")
 def alert_analytics():
@@ -91,6 +104,7 @@ def alert_analytics():
         }
         for d in data
     ]
+
 
 @router.get("/fruits/overview")
 def fruit_overview():
@@ -135,6 +149,7 @@ def sensor_health():
         "online_sensors": total - offline
     }
 
+
 @router.get("/users/summary")
 def users_summary():
 
@@ -157,6 +172,7 @@ def users_summary():
         for d in data
     ]
 
+
 @router.get("/reports/spoilage")
 def spoilage_report():
 
@@ -166,3 +182,46 @@ def spoilage_report():
     )
 
     return list(spoiled)
+
+
+@router.get("/alerts/timeline")
+def alerts_timeline():
+
+    pipeline = [
+        {
+            "$group": {
+                "_id": {
+                    "$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}
+                },
+                "count": {"$sum": 1}
+            }
+        },
+        {"$sort": {"_id": 1}}
+    ]
+
+    data = list(alerts_col.aggregate(pipeline))
+
+    return [
+        {"date": d["_id"], "alerts": d["count"]}
+        for d in data
+    ]
+
+
+@router.get("/batches/status")
+def batch_status():
+
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$status",
+                "count": {"$sum": 1}
+            }
+        }
+    ]
+
+    data = list(batches_col.aggregate(pipeline))
+
+    return [
+        {"status": d["_id"], "count": d["count"]}
+        for d in data
+    ]

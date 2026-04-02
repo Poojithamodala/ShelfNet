@@ -5,6 +5,7 @@ import {
   disableUser,
 } from "../../api/users.api";
 import "../../styles/users.css";
+import "../../styles/common.css";
 
 type User = {
   user_id: string;
@@ -27,7 +28,11 @@ export default function AdminUsers() {
   };
 
   useEffect(() => {
-    loadUsers();
+    const loadData = async () => {
+      await loadUsers();
+    };
+
+    loadData();
   }, []);
 
   const pendingUsers = users.filter((u) => u.status === "PENDING");
@@ -92,7 +97,7 @@ function UsersTable({
   onDisable: (u: User) => void;
 }) {
   return (
-    <table className="users-table">
+    <table className="dashboard-table">
       <thead>
         <tr>
           <th>Name</th>
