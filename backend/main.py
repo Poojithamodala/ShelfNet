@@ -11,9 +11,10 @@ from routes.manager_dashboard_routes import router as manager_router
 from routes.admin_dashboard_routes import router as admin_router
 from routes.sales_dashboard_routes import router as sales_router
 from routes.auth_routes import router as auth_router
-
+from routes.public_routes import router as public_router        # ← ADD THIS
+ 
 app = FastAPI(title="ShelfNet Backend")
-
+ 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -26,7 +27,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+ 
 app.include_router(user_router, prefix="/users")
 app.include_router(warehouse_router, prefix="/warehouses")
 app.include_router(batch_router, prefix="/batches")
@@ -38,3 +39,4 @@ app.include_router(manager_router)
 app.include_router(admin_router)
 app.include_router(sales_router)
 app.include_router(auth_router)
+app.include_router(public_router)       
