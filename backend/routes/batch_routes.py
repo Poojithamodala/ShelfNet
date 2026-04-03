@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from datetime import datetime
 from typing import Optional
 
-from database import batches_collection, warehouses_collection
+from database import batches_collection, warehouses_collection, alerts_collection
 from models.batch_model import BatchCreate
 from utils.id_generator import generate_batch_id
 from utils.auth_dependency import require_role, get_current_user
@@ -18,27 +18,23 @@ def create_batch(
     batch: BatchCreate,
     user=Depends(get_current_user)
 ):
-    # 1. Enforce warehouse ownership
     if user["warehouse_id"] != batch.warehouse_id:
         raise HTTPException(
             status_code=403,
             detail="You are not authorized for this warehouse"
         )
 
-    # 2. Ensure warehouse exists & active
     warehouse = warehouses_collection.find_one(
         {"warehouse_id": batch.warehouse_id, "status": "ACTIVE"}
     )
     if not warehouse:
         raise HTTPException(status_code=404, detail="Warehouse not found")
 
-    # 3. Generate batch ID
     count = batches_collection.count_documents(
         {"fruit": batch.fruit}
     ) + 1
     batch_id = generate_batch_id(batch.fruit, count)
 
-    # 4. Insert batch
     batch_doc = {
         "batch_id": batch_id,
         **batch.dict(),
@@ -49,7 +45,6 @@ def create_batch(
 
     batches_collection.insert_one(batch_doc)
 
-    # 5. Increment warehouse counter (ATOMIC)
     warehouses_collection.update_one(
         {"warehouse_id": batch.warehouse_id},
         {"$inc": {"active_batches_count": 1}}
@@ -68,27 +63,28 @@ def list_batches(
 ):
     role = user["role"]
 
-    # Build query
     if role == "ADMIN":
         query = {}
         if warehouse_id:
             query["warehouse_id"] = warehouse_id
     else:
-        # MANAGER / SALES → forced warehouse from token
         query = {"warehouse_id": user["warehouse_id"]}
 
     batches = list(batches_collection.find(query, {"_id": 0}))
 
-    # AUTO-REFRESH PREDICTIONS (lazy live update)
     for b in batches:
         try:
             predict_for_batch(b["batch_id"])
         except Exception:
-            # Do not break UI if one batch fails
             pass
 
-    # Fetch again to return updated predictions
     return list(batches_collection.find(query, {"_id": 0}))
+
+
+@router.get("/debug-alerts/{batch_id}")
+def debug_alerts(batch_id: str):
+    alerts = list(alerts_collection.find({"batch_id": batch_id}, {"_id": 0}))
+    return {"count": len(alerts), "alerts": alerts}
 
 
 @router.post(
@@ -118,10 +114,16 @@ def close_batch(
         {"$set": {"status": "INACTIVE", "closed_at": datetime.utcnow()}}
     )
 
-    # 2. 🔥 Decrement warehouse counter
+    # 2. Decrement warehouse counter
     warehouses_collection.update_one(
         {"warehouse_id": batch["warehouse_id"]},
         {"$inc": {"active_batches_count": -1}}
+    )
+
+    # 3. Resolve all active alerts for this batch
+    alerts_collection.update_many(
+        {"batch_id": batch_id, "resolved": {"$in": [False, None]}},
+        {"$set": {"resolved": True, "resolved_at": datetime.utcnow()}}
     )
 
     return {"status": "CLOSED"}

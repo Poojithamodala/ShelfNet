@@ -12,13 +12,22 @@ export const getManagerAlerts = (warehouseId: string) =>
 export const resolveManagerAlert = (alertId: string) =>
   api.post(`/manager/alerts/${alertId}/resolve`);
 
+export type SensorReadingPayload = {
+  temperature_c?:    number;
+  humidity_percent?: number;
+  ethylene_ppm?:     number;
+  co2_ppm?:          number;
+  o2_percent?:       number;
+};
+
 export type ManagerBatchPayload = {
-  fruit: string;
-  quantity_kg: number;
-  arrival_date: string;
+  fruit:                    string;
+  quantity_kg:              number;
+  arrival_date:             string;
   expected_shelf_life_days: number;
-  warehouse_id: string;
+  warehouse_id:             string;
+  sensor_reading?:          SensorReadingPayload;
 };
 
 export const createManagerBatch = (batchData: ManagerBatchPayload) =>
-  api.post(`/batches`, batchData);
+  api.post(`/manager/${batchData.warehouse_id}/batches/create`, batchData);

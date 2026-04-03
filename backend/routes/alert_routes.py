@@ -1,15 +1,11 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
-from pymongo import MongoClient
 from bson import ObjectId
 
+from database import alerts_collection
 from utils.auth_dependency import get_current_user, require_role
 
 router = APIRouter()
-
-client = MongoClient("mongodb://localhost:27017")
-db = client["shelfnet"]
-alerts_collection = db["alerts"]
 
 # Get all alerts
 @router.get(
@@ -58,7 +54,8 @@ def get_active_alerts(user=Depends(get_current_user)):
     if user["role"] not in {"ADMIN", "MANAGER"}:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    query = {"resolved": False}
+    # Fix: also catch None/missing resolved field
+    query = {"resolved": {"$in": [False, None]}}
 
     if user["role"] == "MANAGER":
         query["warehouse_id"] = user["warehouse_id"]
@@ -79,7 +76,7 @@ def acknowledge_alert(
         {
             "_id": ObjectId(alert_id),
             "warehouse_id": user["warehouse_id"],
-            "resolved": False
+            "resolved": {"$in": [False, None]}
         },
         {
             "$set": {
@@ -100,7 +97,7 @@ def acknowledge_alert(
     }
 
 
-# resolve alert
+# Resolve alert
 @router.post(
     "/resolve/{alert_id}",
     dependencies=[Depends(require_role(["MANAGER"]))]

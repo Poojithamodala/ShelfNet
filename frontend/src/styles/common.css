@@ -1,5 +1,3 @@
-/* Common styles for all dashboards and pages */
-
 .page {
   width: 100%;
   max-width: none;
@@ -104,4 +102,72 @@
   text-align: center;
   color: #9ca3af;
   font-style: italic;
+}
+
+.alert-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.alert-tag.ETHYLENE_RISING_FAST { background: #ede9fe; color: #1a1a1a; }
+.alert-tag.ETHYLENE_HIGH        { background: #fff3e0; color: #1a1a1a; }
+.alert-tag.CO2_HIGH             { background: #fce7f3; color: #1a1a1a; }
+.alert-tag.O2_LOW               { background: #e0f2fe; color: #1a1a1a; }
+.alert-tag.TEMP_HIGH            { background: #fee2e2; color: #1a1a1a; }
+.alert-tag.TEMP_LOW             { background: #dbeafe; color: #1a1a1a; }
+.alert-tag.HUMIDITY_HIGH        { background: #d1fae5; color: #1a1a1a; }
+.alert-tag.HUMIDITY_LOW         { background: #fef9c3; color: #1a1a1a; }
+.alert-tag.CRITICAL             { background: #fde8e8; color: #1a1a1a; }
+.alert-tag.WARNING              { background: #fff3e0; color: #1a1a1a; }
+.alert-tag.SPOILED              { background: #f3f4f6; color: #1a1a1a; }
+.alert-tag.POWER_FAILURE        { background: #f5f3ff; color: #1a1a1a; }
+.alert-tag.INFO                 { background: #e0f2fe; color: #1a1a1a; }
+
+.severity-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.severity-tag.CRITICAL { background: #fde8e8; color: #b91c1c; }
+.severity-tag.HIGH     { background: #fff3e0; color: #e65100; }
+.severity-tag.LOW      { background: #e8f5e9; color: #2e7d32; }
+
+.status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status.active   { background: #dcfce7; color: #166534; }
+.status.resolved { background: #f3f4f6; color: #6b7280; }
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filters select {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.filters select:focus {
+  outline: none;
+  border-color: #2563eb;
 }

@@ -10,74 +10,72 @@ router = APIRouter(
     dependencies=[Depends(require_role(["ADMIN"]))]
 )
 
-client = MongoClient("mongodb://localhost:27017")
-db = client["shelfnet"]
-
-warehouses_col = db["warehouses"]
-batches_col = db["batches"]
-alerts_col = db["alerts"]
-sensors_col = db["sensors"]
-readings_col = db["sensor_readings"]
-users_col = db["users"]
+from database import (
+    warehouses_collection as warehouses_col,
+    batches_collection as batches_col,
+    alerts_collection as alerts_col,
+    sensors_collection as sensors_col,
+    sensor_readings_collection as readings_col,
+    users_collection as users_col
+)
 
 @router.get("/kpis")
 def get_admin_kpis():
-
-    total_warehouses = warehouses_col.count_documents({})
-    active_batches = batches_col.count_documents({"status": "ACTIVE"})
-    inactive_batches = batches_col.count_documents({"status": "INACTIVE"})
-    total_batches = batches_col.count_documents({})
-    total_sensors = sensors_col.count_documents({})
-    active_alerts = alerts_col.count_documents({"resolved": False})
-    critical_batches = alerts_col.count_documents({
+    total_warehouses  = warehouses_col.count_documents({})
+    active_batches    = batches_col.count_documents({"status": "ACTIVE"})
+    inactive_batches  = batches_col.count_documents({"status": "INACTIVE"})
+    total_batches     = batches_col.count_documents({})
+    total_sensors     = sensors_col.count_documents({})
+    active_alerts     = alerts_col.count_documents({"resolved": {"$in": [False, None]}})
+    resolved_alerts   = alerts_col.count_documents({"resolved": True})
+    critical_batches  = alerts_col.count_documents({
         "alert_type": "CRITICAL",
-        "resolved": False
+        "resolved": {"$in": [False, None]}
     })
 
     return {
         "total_warehouses": total_warehouses,
-        "active_batches": active_batches,
+        "active_batches":   active_batches,
         "inactive_batches": inactive_batches,
-        "total_batches": total_batches,
-        "total_sensors": total_sensors,
-        "active_alerts": active_alerts,
+        "total_batches":    total_batches,
+        "total_sensors":    total_sensors,
+        "active_alerts":    active_alerts,
+        "resolved_alerts":  resolved_alerts,
         "critical_batches": critical_batches
     }
 
 
 @router.get("/warehouses/summary")
 def warehouse_summary():
-
-    result = []
-
+    result     = []
     warehouses = list(warehouses_col.find({}, {"_id": 0}))
 
     for wh in warehouses:
         warehouse_id = wh["warehouse_id"]
 
-        active_batches = batches_col.count_documents({
-            "warehouse_id": warehouse_id,
-            "status": "ACTIVE"
+        active_batches   = batches_col.count_documents({
+            "warehouse_id": warehouse_id, "status": "ACTIVE"
         })
-
-        # ✅ NEW: count inactive batches per warehouse
         inactive_batches = batches_col.count_documents({
-            "warehouse_id": warehouse_id,
-            "status": "INACTIVE"
+            "warehouse_id": warehouse_id, "status": "INACTIVE"
         })
-
-        alerts = alerts_col.count_documents({
+        active_alerts    = alerts_col.count_documents({
             "warehouse_id": warehouse_id,
-            "resolved": False
+            "resolved": {"$in": [False, None]}
+        })
+        resolved_alerts  = alerts_col.count_documents({
+            "warehouse_id": warehouse_id,
+            "resolved": True
         })
 
         result.append({
-            "warehouse_id": warehouse_id,
-            "name": wh["name"],
-            "location": wh["location"],
-            "active_batches": active_batches,
-            "inactive_batches": inactive_batches,  # ✅ NEW
-            "active_alerts": alerts
+            "warehouse_id":    warehouse_id,
+            "name":            wh["name"],
+            "location":        wh["location"],
+            "active_batches":  active_batches,
+            "inactive_batches": inactive_batches,
+            "active_alerts":   active_alerts,
+            "resolved_alerts": resolved_alerts,
         })
 
     return result
@@ -85,7 +83,6 @@ def warehouse_summary():
 
 @router.get("/alerts/analytics")
 def alert_analytics():
-
     pipeline = [
         {
             "$group": {
@@ -94,43 +91,29 @@ def alert_analytics():
             }
         }
     ]
-
     data = list(alerts_col.aggregate(pipeline))
-
-    return [
-        {
-            "alert_type": d["_id"],
-            "count": d["count"]
-        }
-        for d in data
-    ]
+    return [{"alert_type": d["_id"], "count": d["count"]} for d in data]
 
 
 @router.get("/fruits/overview")
 def fruit_overview():
-
     pipeline = [
         {
             "$group": {
                 "_id": "$fruit",
                 "total_batches": {"$sum": 1},
-                "avg_shelf_life": {
-                    "$avg": "$predicted_remaining_shelf_life_days"
-                }
+                "avg_shelf_life": {"$avg": "$predicted_remaining_shelf_life_days"}
             }
         }
     ]
-
     data = list(batches_col.aggregate(pipeline))
-
     return [
         {
             "fruit": d["_id"],
             "total_batches": d["total_batches"],
             "avg_remaining_shelf_life": (
                 round(d["avg_shelf_life"], 2)
-                if d.get("avg_shelf_life") is not None
-                else None
+                if d.get("avg_shelf_life") is not None else None
             )
         }
         for d in data
@@ -139,54 +122,29 @@ def fruit_overview():
 
 @router.get("/sensors/health")
 def sensor_health():
-
-    total = sensors_col.count_documents({})
+    total   = sensors_col.count_documents({})
     offline = sensors_col.count_documents({"status": {"$ne": "ACTIVE"}})
-
     return {
-        "total_sensors": total,
+        "total_sensors":  total,
         "offline_sensors": offline,
-        "online_sensors": total - offline
+        "online_sensors":  total - offline
     }
 
 
 @router.get("/users/summary")
 def users_summary():
-
-    pipeline = [
-        {
-            "$group": {
-                "_id": "$role",
-                "count": {"$sum": 1}
-            }
-        }
-    ]
-
+    pipeline = [{"$group": {"_id": "$role", "count": {"$sum": 1}}}]
     data = list(users_col.aggregate(pipeline))
-
-    return [
-        {
-            "role": d["_id"],
-            "count": d["count"]
-        }
-        for d in data
-    ]
+    return [{"role": d["_id"], "count": d["count"]} for d in data]
 
 
 @router.get("/reports/spoilage")
 def spoilage_report():
-
-    spoiled = alerts_col.find(
-        {"alert_type": "SPOILED"},
-        {"_id": 0}
-    )
-
-    return list(spoiled)
+    return list(alerts_col.find({"alert_type": "SPOILED"}, {"_id": 0}))
 
 
 @router.get("/alerts/timeline")
 def alerts_timeline():
-
     pipeline = [
         {
             "$group": {
@@ -198,30 +156,12 @@ def alerts_timeline():
         },
         {"$sort": {"_id": 1}}
     ]
-
     data = list(alerts_col.aggregate(pipeline))
-
-    return [
-        {"date": d["_id"], "alerts": d["count"]}
-        for d in data
-    ]
+    return [{"date": d["_id"], "alerts": d["count"]} for d in data]
 
 
 @router.get("/batches/status")
 def batch_status():
-
-    pipeline = [
-        {
-            "$group": {
-                "_id": "$status",
-                "count": {"$sum": 1}
-            }
-        }
-    ]
-
+    pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
     data = list(batches_col.aggregate(pipeline))
-
-    return [
-        {"status": d["_id"], "count": d["count"]}
-        for d in data
-    ]
+    return [{"status": d["_id"], "count": d["count"]} for d in data]

@@ -4,55 +4,43 @@ import "../../styles/dashboard.css";
 import "../../styles/common.css";
 
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Legend
+  PieChart, Pie, Cell, Tooltip,
+  BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, ResponsiveContainer, Legend
 } from "recharts";
 
 type AdminKpis = {
-  total_warehouses: number;
-  active_batches: number;
-  inactive_batches: number;
-  total_batches: number;
-  total_sensors: number;
-  active_alerts: number;
-  critical_batches: number;
+  total_warehouses:  number;
+  active_batches:    number;
+  inactive_batches:  number;
+  total_batches:     number;
+  total_sensors:     number;
+  active_alerts:     number;
+  resolved_alerts:   number;
+  critical_batches:  number;
 };
 
-type AlertAnalytics = { alert_type: string; count: number };
+type AlertAnalytics   = { alert_type: string; count: number };
 type WarehouseSummary = {
-  warehouse_id: string;
-  active_batches: number;
+  warehouse_id:     string;
+  active_batches:   number;
   inactive_batches: number;
-  active_alerts: number;
+  active_alerts:    number;
+  resolved_alerts:  number;
 };
-type FruitOverview = {
-  fruit: string;
-  avg_remaining_shelf_life: number;
-};
-type SensorHealth = {
-  online_sensors: number;
-  offline_sensors: number;
-};
-type UserSummary = { role: string; count: number };
+type FruitOverview  = { fruit: string; avg_remaining_shelf_life: number };
+type SensorHealth   = { online_sensors: number; offline_sensors: number };
+type UserSummary    = { role: string; count: number };
 
 const COLORS = ["#4CAF50", "#FF9800", "#F44336", "#2196F3", "#9C27B0"];
 
 export default function AdminDashboard() {
-  const [kpis, setKpis] = useState<AdminKpis | null>(null);
-  const [alerts, setAlerts] = useState<AlertAnalytics[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseSummary[]>([]);
-  const [fruits, setFruits] = useState<FruitOverview[]>([]);
+  const [kpis,         setKpis]         = useState<AdminKpis | null>(null);
+  const [alerts,       setAlerts]       = useState<AlertAnalytics[]>([]);
+  const [warehouses,   setWarehouses]   = useState<WarehouseSummary[]>([]);
+  const [fruits,       setFruits]       = useState<FruitOverview[]>([]);
   const [sensorHealth, setSensorHealth] = useState<SensorHealth | null>(null);
-  const [users, setUsers] = useState<UserSummary[]>([]);
+  const [users,        setUsers]        = useState<UserSummary[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -80,14 +68,15 @@ export default function AdminDashboard() {
 
   const sensorData = sensorHealth
     ? [
-        { name: "Online", value: sensorHealth.online_sensors },
+        { name: "Online",  value: sensorHealth.online_sensors },
         { name: "Offline", value: sensorHealth.offline_sensors }
       ]
     : [];
 
+  const totalAlerts = kpis.active_alerts + kpis.resolved_alerts;
+
   return (
     <div className="page">
-      {/* HEADER */}
       <div className="page-header">
         <div>
           <h1>Admin Dashboard</h1>
@@ -97,18 +86,19 @@ export default function AdminDashboard() {
 
       {/* KPI CARDS */}
       <div className="dashboard-grid">
-        <Card title="Warehouses" value={kpis.total_warehouses} />
-        <Card title="Active Batches" value={kpis.active_batches} />
+        <Card title="Warehouses"       value={kpis.total_warehouses} />
+        <Card title="Active Batches"   value={kpis.active_batches} />
         <Card title="Inactive Batches" value={kpis.inactive_batches} />
-        <Card title="Total Batches" value={kpis.total_batches} />
-        <Card title="Sensors" value={kpis.total_sensors} />
-        <Card title="Active Alerts" value={kpis.active_alerts} />
-        <Card title="Critical Batches" value={kpis.critical_batches} />
+        <Card title="Total Batches"    value={kpis.total_batches} />
+        <Card title="Sensors"          value={kpis.total_sensors} />
+        <Card title="Total Alerts"     value={totalAlerts} />
+        <Card title="Active Alerts"    value={kpis.active_alerts}   color="#F44336" />
+        <Card title="Resolved Alerts"  value={kpis.resolved_alerts} color="#4CAF50" />
+        <Card title="Critical Batches" value={kpis.critical_batches} color="#FF9800" />
       </div>
 
       <h2 style={{ marginTop: "24px" }}>System Analytics</h2>
 
-      {/* CHARTS */}
       <div className="charts">
 
         {/* Alert Distribution */}
@@ -121,9 +111,7 @@ export default function AdminDashboard() {
             </Pie>
             <Tooltip formatter={(value, name) => [value, name]} />
             <Legend
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
+              layout="vertical" align="right" verticalAlign="middle"
               formatter={(value) => (
                 <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
               )}
@@ -141,9 +129,7 @@ export default function AdminDashboard() {
             </Pie>
             <Tooltip formatter={(value, name) => [value, name]} />
             <Legend
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
+              layout="vertical" align="right" verticalAlign="middle"
               formatter={(value) => (
                 <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
               )}
@@ -151,10 +137,30 @@ export default function AdminDashboard() {
           </PieChart>
         </ChartCard>
 
-        {/* ✅ Active + Inactive Batches per Warehouse - Touching grouped bars */}
+        {/* Batches per Warehouse */}
         <ChartCard title="Batches per Warehouse">
+          <BarChart data={warehouses} barCategoryGap="40%" barGap={0}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="warehouse_id" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+            <Tooltip />
+            <Legend
+              formatter={(value) => (
+                <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
+              )}
+            />
+            <Bar dataKey="active_batches"   name="Active Batches"   fill="#4CAF50" maxBarSize={50} />
+            <Bar dataKey="inactive_batches" name="Inactive Batches" fill="#FF9800" maxBarSize={50} />
+          </BarChart>
+        </ChartCard>
+
+        {/* Alerts per Warehouse — Total + Active + Resolved grouped */}
+        <ChartCard title="Alerts per Warehouse">
           <BarChart
-            data={warehouses}
+            data={warehouses.map(w => ({
+              ...w,
+              total_alerts: w.active_alerts + w.resolved_alerts
+            }))}
             barCategoryGap="40%"
             barGap={0}
           >
@@ -167,24 +173,9 @@ export default function AdminDashboard() {
                 <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
               )}
             />
-            <Bar dataKey="active_batches" name="Active Batches" fill="#4CAF50" maxBarSize={50} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="inactive_batches" name="Inactive Batches" fill="#FF9800" maxBarSize={50} radius={[0, 0, 0, 0]} />
-          </BarChart>
-        </ChartCard>
-
-        {/* Alerts per Warehouse */}
-        <ChartCard title="Alerts per Warehouse">
-          <BarChart data={warehouses} barCategoryGap="30%">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="warehouse_id" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-            <Tooltip />
-            <Legend
-              formatter={() => (
-                <span style={{ fontSize: "12px", color: "#374151" }}>Active Alerts</span>
-              )}
-            />
-            <Bar dataKey="active_alerts" fill="#F44336" name="Active Alerts" maxBarSize={40} />
+            <Bar dataKey="total_alerts"    name="Total Alerts"    fill="#2196F3" maxBarSize={50} />
+            <Bar dataKey="active_alerts"   name="Active Alerts"   fill="#F44336" maxBarSize={50} />
+            <Bar dataKey="resolved_alerts" name="Resolved Alerts" fill="#4CAF50" maxBarSize={50} />
           </BarChart>
         </ChartCard>
 
@@ -214,9 +205,7 @@ export default function AdminDashboard() {
             </Pie>
             <Tooltip formatter={(value, name) => [value, name]} />
             <Legend
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
+              layout="vertical" align="right" verticalAlign="middle"
               formatter={(value) => (
                 <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
               )}
@@ -229,17 +218,15 @@ export default function AdminDashboard() {
   );
 }
 
-/* KPI CARD */
-function Card({ title, value }: { title: string; value: number }) {
+function Card({ title, value, color }: { title: string; value: number; color?: string }) {
   return (
     <div className="dashboard-card">
       <h3>{title}</h3>
-      <p>{value}</p>
+      <p style={color ? { color } : undefined}>{value}</p>
     </div>
   );
 }
 
-/* CHART CARD */
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
   return (
     <div className="dashboard-card" style={{ height: "420px" }}>

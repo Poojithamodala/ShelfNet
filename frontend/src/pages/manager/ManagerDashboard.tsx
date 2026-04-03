@@ -5,60 +5,54 @@ import { getWarehouseById } from "../../api/warehouse.api";
 import api from "../../api/axios";
 import "../../styles/manager.css";
 import "../../styles/common.css";
- 
+
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Legend,
+  PieChart, Pie, Cell, Tooltip,
+  BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, ResponsiveContainer, Legend,
 } from "recharts";
- 
+
 type ManagerKpis = {
-  active_batches: number;
-  selled_batches: number;
-  total_batches: number;
-  critical_alerts: number;
+  active_batches:   number;
+  selled_batches:   number;
+  total_batches:    number;
+  active_alerts:    number;
+  critical_alerts:  number;
+  resolved_alerts:  number;
   expiring_batches: number;
-  sensors_online: number;
-  sensors_total: number;
+  sensors_online:   number;
+  sensors_total:    number;
 };
- 
+
 type Warehouse       = { warehouse_id?: string; name?: string };
 type BatchStatusItem = { label: string; count: number };
-type AlertItem       = { alert_type: string; count: number };
+type AlertItem       = { alert_type: string; active: number; resolved: number };
 type FruitShelfLife  = { fruit: string; avg_remaining_shelf_life: number; total_batches: number };
 type SensorHealth    = { name: string; value: number };
 type ExpiryBucket    = { label: string; count: number };
- 
+
 const COLORS = ["#4CAF50", "#FF9800", "#F44336", "#2196F3", "#9C27B0"];
- 
+
 export default function ManagerDashboard() {
-  const user = getUser();
+  const user        = getUser();
   const warehouseId = user?.warehouse_id;
- 
-  const [kpis, setKpis]               = useState<ManagerKpis | null>(null);
-  const [warehouse, setWarehouse]     = useState<Warehouse | null>(null);
-  const [batchStatus, setBatchStatus] = useState<BatchStatusItem[]>([]);
-  const [alerts, setAlerts]           = useState<AlertItem[]>([]);
-  const [fruitShelf, setFruitShelf]   = useState<FruitShelfLife[]>([]);
+
+  const [kpis,         setKpis]         = useState<ManagerKpis | null>(null);
+  const [warehouse,    setWarehouse]    = useState<Warehouse | null>(null);
+  const [batchStatus,  setBatchStatus]  = useState<BatchStatusItem[]>([]);
+  const [alerts,       setAlerts]       = useState<AlertItem[]>([]);
+  const [fruitShelf,   setFruitShelf]   = useState<FruitShelfLife[]>([]);
   const [sensorHealth, setSensorHealth] = useState<SensorHealth[]>([]);
-  const [expiry, setExpiry]           = useState<ExpiryBucket[]>([]);
-  const [error, setError]             = useState<string | null>(null);
- 
+  const [expiry,       setExpiry]       = useState<ExpiryBucket[]>([]);
+  const [error,        setError]        = useState<string | null>(null);
+
   useEffect(() => {
     const load = async () => {
       if (!warehouseId) {
         setError("No warehouse assigned to this manager.");
         return;
       }
- 
+
       try {
         const [kpiRes, warehouseRes, statusRes, alertRes, fruitRes, sensorRes, expiryRes] =
           await Promise.all([
@@ -70,7 +64,7 @@ export default function ManagerDashboard() {
             api.get(`/manager/${warehouseId}/analytics/sensor-health`),
             api.get(`/manager/${warehouseId}/analytics/expiry-distribution`),
           ]);
- 
+
         setKpis(kpiRes.data);
         setWarehouse(warehouseRes.data);
         setBatchStatus(statusRes.data);
@@ -86,41 +80,39 @@ export default function ManagerDashboard() {
         setError(message);
       }
     };
- 
+
     load();
   }, [warehouseId]);
- 
-  if (error) return <p>{error}</p>;
+
+  if (error)  return <p>{error}</p>;
   if (!kpis)  return <p>Loading KPI summary...</p>;
- 
+
   return (
     <div className="page">
-      {/* HEADER */}
       <div className="page-header">
         <div>
           <h1>Manager Dashboard</h1>
-          <p>
-            {warehouse?.name} ({warehouseId})
-          </p>
+          <p>{warehouse?.name} ({warehouseId})</p>
         </div>
       </div>
- 
+
       {/* KPI CARDS */}
       <div className="dashboard-grid">
-        <Card title="Active Batches"         value={kpis.active_batches} />
-        <Card title="Sold Batches"           value={kpis.selled_batches} />
-        <Card title="Total Batches"          value={kpis.total_batches} />
-        <Card title="Critical Alerts"        value={kpis.critical_alerts} />
-        <Card title="Expiring (≤5 days)"     value={kpis.expiring_batches} />
-        <Card title="Sensors Online"         value={kpis.sensors_online} />
-        <Card title="Total Sensors"          value={kpis.sensors_total} />
+        <Card title="Active Batches"     value={kpis.active_batches} />
+        <Card title="Sold Batches"       value={kpis.selled_batches} />
+        <Card title="Total Batches"      value={kpis.total_batches} />
+        <Card title="Active Alerts"      value={kpis.active_alerts}    color="#F44336" />
+        <Card title="Critical Alerts"    value={kpis.critical_alerts}  color="#FF9800" />
+        <Card title="Resolved Alerts"    value={kpis.resolved_alerts}  color="#4CAF50" />
+        <Card title="Expiring (≤5 days)" value={kpis.expiring_batches} color="#FF9800" />
+        <Card title="Sensors Online"     value={kpis.sensors_online} />
+        <Card title="Total Sensors"      value={kpis.sensors_total} />
       </div>
- 
+
       <h2 style={{ marginTop: "24px" }}>Warehouse Analytics</h2>
- 
-      {/* CHARTS */}
+
       <div className="charts">
- 
+
         {/* Sensor Health — Pie */}
         <ChartCard title="Sensor Health">
           <PieChart>
@@ -131,16 +123,14 @@ export default function ManagerDashboard() {
             </Pie>
             <Tooltip formatter={(value, name) => [value, name]} />
             <Legend
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
+              layout="vertical" align="right" verticalAlign="middle"
               formatter={(value) => (
                 <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
               )}
             />
           </PieChart>
         </ChartCard>
- 
+
         {/* Batch Status — Pie */}
         <ChartCard title="Batch Status Breakdown">
           <PieChart>
@@ -151,32 +141,31 @@ export default function ManagerDashboard() {
             </Pie>
             <Tooltip formatter={(value, name) => [value, name]} />
             <Legend
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
+              layout="vertical" align="right" verticalAlign="middle"
               formatter={(value) => (
                 <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
               )}
             />
           </PieChart>
         </ChartCard>
- 
-        {/* Alert Type Breakdown — Bar */}
+
+        {/* Alert Type Breakdown — Active + Resolved grouped bars */}
         <ChartCard title="Alert Type Breakdown">
-          <BarChart data={alerts} barCategoryGap="30%">
+          <BarChart data={alerts} barCategoryGap="40%" barGap={0}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="alert_type" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
             <Tooltip />
             <Legend
-              formatter={() => (
-                <span style={{ fontSize: "12px", color: "#374151" }}>Active Alerts</span>
+              formatter={(value) => (
+                <span style={{ fontSize: "12px", color: "#374151" }}>{value}</span>
               )}
             />
-            <Bar dataKey="count" name="Active Alerts" fill="#F44336" maxBarSize={40} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="active"   name="Active Alerts"   fill="#F44336" maxBarSize={50} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="resolved" name="Resolved Alerts" fill="#4CAF50" maxBarSize={50} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartCard>
- 
+
         {/* Avg Shelf Life by Fruit — Bar */}
         <ChartCard title="Avg Shelf Life by Fruit">
           <BarChart data={fruitShelf} barCategoryGap="30%">
@@ -198,7 +187,7 @@ export default function ManagerDashboard() {
             />
           </BarChart>
         </ChartCard>
- 
+
         {/* Expiry Distribution — Bar */}
         <ChartCard title="Batch Expiry Distribution">
           <BarChart data={expiry} barCategoryGap="30%">
@@ -218,21 +207,21 @@ export default function ManagerDashboard() {
             </Bar>
           </BarChart>
         </ChartCard>
- 
+
       </div>
     </div>
   );
 }
- 
-function Card({ title, value }: { title: string; value: number }) {
+
+function Card({ title, value, color }: { title: string; value: number; color?: string }) {
   return (
     <div className="dashboard-card">
       <h3>{title}</h3>
-      <p>{value}</p>
+      <p style={color ? { color } : undefined}>{value}</p>
     </div>
   );
 }
- 
+
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
   return (
     <div className="dashboard-card" style={{ height: "420px" }}>
