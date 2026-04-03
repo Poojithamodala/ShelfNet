@@ -19,10 +19,26 @@ router = APIRouter(
     dependencies=[Depends(require_role(["MANAGER", "ADMIN"]))]
 )
 
+# ─── HELPERS ────────────────────────────────────────────────────────────────
+
 def check_warehouse_access(user, warehouse_id: str):
     if user["role"] == "MANAGER" and user.get("warehouse_id") != warehouse_id:
         raise HTTPException(status_code=403, detail="Access denied to this warehouse")
 
+
+def serialize_doc(doc: dict) -> dict:
+    """Convert MongoDB doc fields to JSON-safe types."""
+    result = {}
+    for k, v in doc.items():
+        if isinstance(v, datetime):
+            result[k] = v.isoformat()
+        else:
+            result[k] = v
+    result.pop("_id", None)
+    return result
+
+
+# ─── MODELS ─────────────────────────────────────────────────────────────────
 
 class SensorReadingInput(BaseModel):
     temperature_c:    Optional[float] = None
@@ -39,6 +55,8 @@ class CreateBatchRequest(BaseModel):
     warehouse_id:             str
     sensor_reading:           Optional[SensorReadingInput] = None
 
+
+# ─── ROUTES ─────────────────────────────────────────────────────────────────
 
 @router.post("/{warehouse_id}/batches/create")
 def create_batch(
@@ -276,12 +294,14 @@ def get_warehouse_alerts(
 ):
     check_warehouse_access(user, warehouse_id)
 
-    return list(
+    alerts = list(
         alerts_col.find(
             {"warehouse_id": warehouse_id},
             {"_id": 0}
         ).sort("created_at", -1)
     )
+    # FIX: serialize datetime fields so JSON encoding doesn't crash
+    return [serialize_doc(a) for a in alerts]
 
 
 @router.get("/{warehouse_id}/batches")
@@ -291,31 +311,36 @@ def get_warehouse_batches(
 ):
     check_warehouse_access(user, warehouse_id)
 
-    batches = list(batches_col.find({"warehouse_id": warehouse_id}, {"_id": 0}))
-
-    active_batches = [b for b in batches if b.get("status") == "ACTIVE"]
-    for batch in active_batches:
-        try:
-            predict_for_batch(batch["batch_id"])
-        except Exception:
-            pass
-
+    # FIX 1: Single fetch only
     batches = list(batches_col.find({"warehouse_id": warehouse_id}, {"_id": 0}))
 
     for batch in batches:
+        # FIX 2: Run prediction and update in-place (no second DB fetch)
+        if batch.get("status") == "ACTIVE":
+            try:
+                predicted = predict_for_batch(batch["batch_id"])
+                batch["predicted_remaining_shelf_life_days"] = predicted
+            except Exception as e:
+                print(f"⚠️ Prediction failed for {batch['batch_id']}: {e}")
+                # keep existing value from DB as-is
+
         alert_count = alerts_col.count_documents({
             "batch_id": batch["batch_id"],
             "resolved": {"$in": [False, None]}
         })
-        remaining = batch.get("predicted_remaining_shelf_life_days", 999)
+
+        # FIX 3: Guard against None before numeric comparison
+        remaining = batch.get("predicted_remaining_shelf_life_days")
         batch["active_alerts"] = alert_count
         batch["risk_level"] = (
-            "CRITICAL" if remaining <= 2 else
-            "WARNING"  if remaining <= 5 else
+            "UNKNOWN"  if remaining is None else
+            "CRITICAL" if remaining <= 2    else
+            "WARNING"  if remaining <= 5    else
             "SAFE"
         )
 
-    return batches
+    # FIX 4: Serialize all datetime fields before returning
+    return [serialize_doc(b) for b in batches]
 
 
 @router.get("/batch/{batch_id}/details")
@@ -336,10 +361,10 @@ def get_batch_details(
     alerts = list(alerts_col.find({"batch_id": batch_id}, {"_id": 0}).sort("created_at", -1))
 
     return {
-        "batch":          batch,
-        "sensor":         sensor,
-        "latest_reading": latest_reading,
-        "alerts":         alerts
+        "batch":          serialize_doc(batch),
+        "sensor":         serialize_doc(sensor)         if sensor         else None,
+        "latest_reading": serialize_doc(latest_reading) if latest_reading else None,
+        "alerts":         [serialize_doc(a) for a in alerts]
     }
 
 
@@ -357,12 +382,14 @@ def get_sensor_trends(
 
     since = datetime.utcnow() - timedelta(hours=hours)
 
-    return list(
+    readings = list(
         readings_col.find(
             {"batch_id": batch_id, "timestamp": {"$gte": since}},
             {"_id": 0}
         ).sort("timestamp", 1)
     )
+    # FIX: serialize datetime fields in readings too
+    return [serialize_doc(r) for r in readings]
 
 
 @router.post("/alerts/{alert_id}/resolve")

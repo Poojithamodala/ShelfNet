@@ -3,38 +3,40 @@ import numpy as np
 from pymongo import MongoClient
 
 FRUIT_ENCODING = {
-    "Apple":      0,
-    "Apples":     0,
-    "Banana":     1,
-    "Strawberry": 2,
-    "Pear":       3,
-    "Grapes":     4,
-    "Cherry":     5,
-    "Tomato":     6,
-    "Oranges":    7,
-    "Mango":      8,
-    "Carrot":     9,
-    "Broccoli":   10,
-    "Spinach":    11,
-    "Potato":     12,
-    "Onion":      13,
-    "Capsicum":   14,
-    "Cucumber":   15,
-    "Cabbage":    16,
-    "Cauliflower":17,
-    "Lettuce":    18,
-    "Peas":       19,
-    "Corn":       20,
-    "Beetroot":   21,
-    "Garlic":     22,
-    "Ginger":     23,
+    "Apple":       0,
+    "Apples":      0,
+    "Banana":      1,
+    "Strawberry":  2,
+    "Pear":        3,
+    "Grapes":      4,
+    "Cherry":      5,
+    "Tomato":      6,
+    "Oranges":     7,
+    "Mango":       8,
+    "Carrot":      9,
+    "Broccoli":    10,
+    "Spinach":     11,
+    "Potato":      12,
+    "Onion":       13,
+    "Capsicum":    14,
+    "Cucumber":    15,
+    "Cabbage":     16,
+    "Cauliflower": 17,
+    "Lettuce":     18,
+    "Peas":        19,
+    "Corn":        20,
+    "Beetroot":    21,
+    "Garlic":      22,
+    "Ginger":      23,
 }
 
-FEATURES = ["temperature", "humidity", "ethylene", "co2", "o2", "fruit_encoded"]
+# SENSOR_FEATURES are scaled; fruit_encoded is passed as-is
+SENSOR_FEATURES = ["temperature", "humidity", "ethylene", "co2", "o2"]
+FEATURES        = ["temperature", "humidity", "ethylene", "co2", "o2", "fruit_encoded"]
 SEQUENCE_LENGTH = 10
 
-client = MongoClient("mongodb://localhost:27017")
-db = client["shelfnet"]
+client            = MongoClient("mongodb://localhost:27017")
+db                = client["shelfnet"]
 sensor_collection = db["sensor_readings"]
 batch_collection  = db["batches"]
 
@@ -81,7 +83,7 @@ def create_sequences(df):
     for batch_id, batch_df in df.groupby("batch_id"):
         batch_df = batch_df.sort_values("timestamp")
 
-        values = batch_df[FEATURES].values
+        values = batch_df[FEATURES].values          # (N, 6)
         labels = batch_df["remaining_shelf_life"].values
 
         for i in range(len(values) - SEQUENCE_LENGTH):
